@@ -36,7 +36,18 @@ pip install -r requirements.txt
 python -m playwright install chromium
 ```
 
+> **EDEX is a local desktop tool, not a cloud app.** It opens a real browser for
+> you to sign in to SmartyGrants (Microsoft SSO/MFA) and saves files to your PC,
+> so it must run on your own machine. It cannot be hosted on Streamlit Community
+> Cloud (there's no screen to log into and no Chromium browser there).
+
 ## Run
+
+**Easiest (Windows):** double-click **`setup_edex.bat`** once, then double-click
+**`run_edex.bat`** whenever you want to use EDEX. It opens in your web browser;
+keep the little black window open while you work, and close it to stop.
+
+**Or from a terminal:**
 
 ```bash
 streamlit run app.py
