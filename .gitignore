@@ -1,0 +1,28 @@
+# Local signed-in browser profile (cookies / SSO session) — never commit.
+.edex_profile/
+
+# Saved real portal pages for reference — contain personal/applicant data.
+_reference/
+
+# Downloaded attachments / scratch output
+downloads/
+.smoke_site/
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Local Claude Code settings (personal permission allowlist)
+.claude/settings.local.json
+
+# OS
+Thumbs.db
+.DS_Store

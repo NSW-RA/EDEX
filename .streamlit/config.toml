@@ -1,0 +1,4 @@
+# Streamlit runtime configuration for EDEX.
+
+[theme]
+base = "light"

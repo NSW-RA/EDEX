@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!-- Faithful, trimmed copy of a SmartyGrants EPAR Application page. Mirrors the
+     real DOM: ftViewGrid with header ids gridheads{gid}_q{qid}, data cells with
+     matching headers= attrs, ftFileList/ftFile file links, a non-grid upload,
+     and the Download dropdown (which must be IGNORED by the parser). Two rows
+     deliberately share a Damage Evidence file named "1.jpeg" to prove that row
+     context — not the filename — is what separates them. -->
+<html lang="en"><head><title>Application - EP11700000005</title></head><body>
+<h2 id="subHeading">Application EP11700000005</h2>
+
+<!-- The form's Download menu duplicates every attachment as a flat list. The
+     parser must NOT read this (it has no damage-item/category context). -->
+<ul class="dropdown-menu">
+  <li><a href="https://manage.smartygrants.com.au/application/4606199/application#" id="dlAllFiles">Download All</a></li>
+  <li class="subelement"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/aaaa">PRE_CBRS01.pdf</a></li>
+  <li class="subelement"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/bbbb">DMG_CBRS01.pdf</a></li>
+</ul>
+
+<div class="ftEditForm">
+  <!-- ===== Non-grid application-level upload: Public Liability Insurance ===== -->
+  <div class="ftViewQuestion fsBoxV">
+    <label class="ftViewLabel fsBoxV1" for="q15813200_0"><span id="q15813200_0_questionText">Please provide evidence that the applicant organisation holds Public Liability Insurance.</span></label>
+    <div class="fsBoxV2"><div class="ftViewBody"><div class="ftViewQuestion">
+      <ul class="ftFileList"><li class="ftFile"><div class="sg-form-layout">
+        <div class="row"><div class="col-2 col-label">Filename</div>
+          <div class="col"><span class="ftFileTitle"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/pil01">SINGLE 2025-26 PIL Generic CofC.pdf</a></span></div></div>
+        <div class="row"><div class="col-2 col-label">File size</div><div class="col"><span class="ftFileSize">29.2 kB</span></div></div>
+      </div></li></ul>
+    </div></div></div>
+  </div>
+
+  <!-- ===== Non-grid application-level upload: Supporting Documentation ===== -->
+  <div class="ftViewQuestion fsBoxV">
+    <label class="ftViewLabel fsBoxV1" for="q15813300_0"><span id="q15813300_0_questionText">Supporting Documentation</span></label>
+    <div class="fsBoxV2"><div class="ftViewBody"><div class="ftViewQuestion">
+      <ul class="ftFileList"><li class="ftFile"><div class="sg-form-layout">
+        <div class="row"><div class="col-2 col-label">Filename</div>
+          <div class="col"><span class="ftFileTitle"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/sup01">Council resolution.pdf</a></span></div></div>
+      </div></li></ul>
+    </div></div></div>
+  </div>
+
+  <!-- ===== Damage Information grid ===== -->
+  <div class="sectionGridBody"><table class="ftViewGrid"><colgroup><col span="6"></colgroup>
+    <thead><tr>
+      <th id="gridheads5652375_q16534675"><span class="ftViewLabel fsBoxV1">Damage Item ID</span></th>
+      <th id="gridheads5652375_q16534676"><span class="ftViewLabel fsBoxV1">Asset ID</span></th>
+      <th id="gridheads5652375_q16460668"><span class="ftViewLabel fsBoxV1">Asset Name</span></th>
+      <th id="gridheads5652375_q15803593"><span class="ftViewLabel fsBoxV1">Pre-Disaster Evidence Upload</span></th>
+      <th id="gridheads5652375_q15803594"><span class="ftViewLabel fsBoxV1">Damage Evidence Upload</span></th>
+      <th id="gridheads5652375_q15804961"><span class="ftViewLabel fsBoxV1">Upload Cost Estimation Evidence</span></th>
+    </tr></thead>
+    <tbody>
+      <!-- hint row: no headers= attrs, must be skipped -->
+      <tr>
+        <td><div class="ftViewHint" id="hint-q16534675">Please put the actual ID</div></td>
+        <td><div class="ftViewHint" id="hint-q16534676">E.g., road or bridge number</div></td>
+        <td><div class="ftViewHint" id="hint-q16460668"></div></td>
+        <td><div class="ftViewHint" id="hint-q15803593"></div></td>
+        <td><div class="ftViewHint" id="hint-q15803594"></div></td>
+        <td><div class="ftViewHint" id="hint-q15804961"></div></td>
+      </tr>
+      <!-- damage item 1: CBRS1 -->
+      <tr>
+        <td headers="gridheads5652375_q16534675"><div class="ftViewBody"><div class="ftViewQuestion"><div>CBRS1 <span class="properAsterisk"> <span class="properAsterisk">*</span> <span class="sr-only">Required</span></span></div></div></div></td>
+        <td headers="gridheads5652375_q16534676"><div class="ftViewBody"><div class="ftViewQuestion"><div>9177 <span class="properAsterisk"> <span class="properAsterisk">*</span> <span class="sr-only">Required</span></span></div></div></div></td>
+        <td headers="gridheads5652375_q16460668"><div class="ftViewBody"><div class="ftViewQuestion"><div>Carrowbrook Road <span class="properAsterisk"> <span class="properAsterisk">*</span> <span class="sr-only">Required</span></span></div></div></div></td>
+        <td headers="gridheads5652375_q15803593"><div class="ftViewBody"><div class="ftViewQuestion"><ul class="ftFileList"><li class="ftFile"><div class="sg-form-layout"><div class="row"><div class="col-2 col-label">Filename</div><div class="col"><span class="ftFileTitle"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/f4198">PRE_CBRS01.pdf</a></span></div></div></div></li></ul></div></div></td>
+        <td headers="gridheads5652375_q15803594"><div class="ftViewBody"><div class="ftViewQuestion"><ul class="ftFileList"><li class="ftFile"><div class="sg-form-layout"><div class="row"><div class="col-2 col-label">Filename</div><div class="col"><span class="ftFileTitle"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/dmg01a">DMG_CBRS01.pdf</a></span></div></div></div></li><li class="ftFile"><div class="sg-form-layout"><div class="row"><div class="col-2 col-label">Filename</div><div class="col"><span class="ftFileTitle"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/genA">1.jpeg</a></span></div></div></div></li></ul></div></div></td>
+        <td headers="gridheads5652375_q15804961"><div class="ftViewBody"><div class="ftViewQuestion"><ul class="ftFileList"><li class="ftFile"><div class="sg-form-layout"><div class="row"><div class="col-2 col-label">Filename</div><div class="col"><span class="ftFileTitle"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/cost01a">CBRS01 - cost-estimation-tool-external-v2.1.xlsx</a></span></div></div></div></li><li class="ftFile"><div class="sg-form-layout"><div class="row"><div class="col-2 col-label">Filename</div><div class="col"><span class="ftFileTitle"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/cost01b">CBRS01 - Estimate Submission.xlsx</a></span></div></div></div></li></ul></div></div></td>
+      </tr>
+      <!-- damage item 2: CBRS2 — note the Damage Evidence file is ALSO "1.jpeg" -->
+      <tr>
+        <td headers="gridheads5652375_q16534675"><div class="ftViewBody"><div class="ftViewQuestion"><div>CBRS2</div></div></div></td>
+        <td headers="gridheads5652375_q16534676"><div class="ftViewBody"><div class="ftViewQuestion"><div>9177</div></div></div></td>
+        <td headers="gridheads5652375_q16460668"><div class="ftViewBody"><div class="ftViewQuestion"><div>Carrowbrook Road</div></div></div></td>
+        <td headers="gridheads5652375_q15803593"><div class="ftViewBody"><div class="ftViewQuestion"><ul class="ftFileList"><li class="ftFile"><div class="sg-form-layout"><div class="row"><div class="col-2 col-label">Filename</div><div class="col"><span class="ftFileTitle"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/pre02">PRE_CBRS02.pdf</a></span></div></div></div></li></ul></div></div></td>
+        <td headers="gridheads5652375_q15803594"><div class="ftViewBody"><div class="ftViewQuestion"><ul class="ftFileList"><li class="ftFile"><div class="sg-form-layout"><div class="row"><div class="col-2 col-label">Filename</div><div class="col"><span class="ftFileTitle"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/genB">1.jpeg</a></span></div></div></div></li></ul></div></div></td>
+        <td headers="gridheads5652375_q15804961"><div class="ftViewBody"><div class="ftViewQuestion"><ul class="ftFileList"><li class="ftFile"><div class="sg-form-layout"><div class="row"><div class="col-2 col-label">Filename</div><div class="col"><span class="ftFileTitle"><a href="https://manage.smartygrants.com.au/d/files/dl/15112802/cost02">CBRS02 - Estimate Submission.xlsx</a></span></div></div></div></li></ul></div></div></td>
+      </tr>
+    </tbody>
+  </table></div>
+</div>
+</body></html>
