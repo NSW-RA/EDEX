@@ -1,4 +1,7 @@
+# Cloud-safe dependencies (Streamlit Community Cloud installs these).
+# The cloud app (app_cloud.py) authenticates with a pasted session cookie and
+# uses plain HTTP requests — no browser — so Playwright is NOT needed here.
+# For the LOCAL browser-driven app (app.py), use requirements-local.txt instead.
 streamlit==1.58.0
-playwright==1.49.1
+requests==2.32.3
 beautifulsoup4==4.12.3
-pytest==8.3.4

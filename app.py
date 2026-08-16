@@ -48,16 +48,22 @@ def _ensure_started(session: BrowserSession) -> None:
 
 
 def _report_browser_error(exc: BrowserError) -> None:
+    import sys
+
     message = str(exc)
-    if "install" in message.lower() or "executable doesn" in message.lower():
+    low = message.lower()
+    if "executable doesn't exist" in low or "playwright install" in low:
         st.error(
-            "The browser engine isn't installed yet. Open a terminal in this "
-            "folder and run:\n\n`python -m playwright install chromium`\n\nthen "
-            "try again.",
+            "Chromium isn't installed for the Python that's running EDEX.\n\n"
+            "The fix: **close this and start EDEX by double-clicking "
+            "`run_edex.bat`** — it uses the set-up environment that already has "
+            "the browser. (If you launched from PyCharm's Run button instead, "
+            "that's the cause — it uses a different Python.)\n\n"
+            f"Running under: `{sys.executable}`\n\nDetails: {message[:300]}",
             icon=":material/error:",
         )
     else:
-        st.error(f"Browser problem: {message}", icon=":material/error:")
+        st.error(f"Browser problem: {message[:600]}", icon=":material/error:")
 
 
 render_splash()

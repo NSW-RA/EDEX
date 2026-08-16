@@ -27,6 +27,11 @@ static/              NSW Design System CSS, HTML chrome, logos
 tests/               Unit tests for the pure logic
 ```
 
+## For colleagues
+
+Each person runs their own copy on their own PC and signs in as themselves.
+Non-technical step-by-step instructions are in **[INSTALL.md](INSTALL.md)**.
+
 ## Setup (first time)
 
 ```bash

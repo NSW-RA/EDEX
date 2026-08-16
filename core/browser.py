@@ -41,13 +41,27 @@ class BrowserSession:
         self._commands: "queue.Queue[tuple[_Command, queue.Queue] | None]" = queue.Queue()
         self._ready = threading.Event()
         self._start_error: Exception | None = None
-        self._thread = threading.Thread(target=self._run, name="edex-browser", daemon=True)
+        self._thread: threading.Thread | None = None
         self._closed = False
 
     # ---- lifecycle -------------------------------------------------------
 
     def start(self) -> None:
-        """Launch the browser and block until it is ready (or raise)."""
+        """Launch the browser and block until it is ready (or raise).
+
+        Idempotent and restartable: a ``threading.Thread`` can only be started
+        once, so each attempt builds a *fresh* worker thread. If a previous
+        attempt failed (e.g. the browser wasn't installed) the worker exits and
+        this can be called again to retry — instead of crashing with
+        "threads can only be started once".
+        """
+        if self._thread is not None and self._thread.is_alive():
+            return
+        self._commands = queue.Queue()
+        self._ready = threading.Event()
+        self._start_error = None
+        self._closed = False
+        self._thread = threading.Thread(target=self._run, name="edex-browser", daemon=True)
         self._thread.start()
         self._ready.wait()
         if self._start_error is not None:
@@ -55,10 +69,10 @@ class BrowserSession:
 
     @property
     def alive(self) -> bool:
-        return self._thread.is_alive() and not self._closed
+        return self._thread is not None and self._thread.is_alive() and not self._closed
 
     def close(self) -> None:
-        if self._closed:
+        if self._closed or self._thread is None:
             return
         self._closed = True
         self._commands.put(None)
