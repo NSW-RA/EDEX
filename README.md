@@ -1,84 +1,79 @@
 # EDEX — Attachment Downloader
 
-A local Streamlit tool for the NSW Reconstruction Authority. Sign in once to a
-portal (Microsoft SSO / MFA), paste the address of a page, and EDEX collects
-every attachment link so you can download them all in one zip.
+A Streamlit tool for the NSW Reconstruction Authority. Enter a SmartyGrants
+application, let EDEX use your SmartyGrants sign-in, and it downloads every
+attachment — sorted into folders by damage item and evidence type — as a single
+zip.
 
 Sibling to the EPAR Checker Tool — same NSW branding and layout.
 
 ## How it works
 
-EDEX drives a real, headed browser via **Playwright**, using a persistent
-profile so your sign-in survives across the app's reruns. Attachments are
-fetched through that signed-in session, so files behind the login come through
-with the right cookies.
+EDEX authenticates with your SmartyGrants sign-in and fetches the pages and
+files over plain HTTP requests — **no browser automation**. That's deliberate:
+browser automation is blocked on locked-down government machines, and it can't
+run on a shared server. Fetching over HTTP works in both places, so the same
+app runs locally *and* deploys to Streamlit Community Cloud.
+
+Your sign-in comes from either:
+- **Automatically** reading it from your browser (works when you run EDEX on your
+  own machine), or
+- **Pasting** it (the fallback, and the only option on the cloud version).
 
 ```
-app.py               Main page: sign in, paste a URL, fetch attachments
-pages/1_Results.py   Review found attachments, pick some, download as a zip
-pages/2_Guide.py     User guide
-core/browser.py      Playwright persistent session on a worker thread
-core/scraper.py      Resolve/de-duplicate/filter links (pure, tested)
-core/downloader.py   Filenames + zip bundling (pure, tested)
-core/models.py       Attachment / DownloadResult dataclasses
-utils/ui.py          NSW-branded page chrome
-utils/session.py     The one cached browser session
-static/              NSW Design System CSS, HTML chrome, logos
-tests/               Unit tests for the pure logic
+app.py                Single-page app: sign-in, fetch, sorted download
+core/http_client.py   Cookie-authenticated HTTP client (scrape + fetch)
+core/smartygrants.py  Parse the Application damage grid -> categorised files
+core/scraper.py       Resolve / de-duplicate / filter links (pure, tested)
+core/downloader.py    Filenames, zip building, folder-tree zip (pure, tested)
+core/models.py        Attachment / CategorisedFile dataclasses
+utils/ui.py           NSW-branded page chrome
+static/               NSW Design System CSS, HTML chrome, logos
+tests/                Unit tests for the pure logic (35 tests)
 ```
 
 ## For colleagues
 
-Each person runs their own copy on their own PC and signs in as themselves.
-Non-technical step-by-step instructions are in **[INSTALL.md](INSTALL.md)**.
+Each person runs their own copy and uses their own sign-in. Non-technical
+step-by-step instructions are in **[INSTALL.md](INSTALL.md)**.
 
-## Setup (first time)
+## Run locally
+
+**Easiest (Windows):** double-click **`setup_edex.bat`** once, then
+**`run_edex.bat`** whenever you want EDEX. It opens in your web browser; keep the
+little black window open while you work, close it to stop.
+
+**From a terminal:**
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate            # Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python -m playwright install chromium
+.venv\Scripts\python -m pip install -r requirements-local.txt
+.venv\Scripts\streamlit run app.py
 ```
 
-> **EDEX is a local desktop tool, not a cloud app.** It opens a real browser for
-> you to sign in to SmartyGrants (Microsoft SSO/MFA) and saves files to your PC,
-> so it must run on your own machine. It cannot be hosted on Streamlit Community
-> Cloud (there's no screen to log into and no Chromium browser there).
+Then: enter an application number (e.g. `4606199`) → get your sign-in (auto-read
+or paste) → **Fetch attachments** → save the zip.
 
-## Run
+## Deploy to Streamlit Community Cloud
 
-**Easiest (Windows):** double-click **`setup_edex.bat`** once, then double-click
-**`run_edex.bat`** whenever you want to use EDEX. It opens in your web browser;
-keep the little black window open while you work, and close it to stop.
-
-**Or from a terminal:**
-
-```bash
-streamlit run app.py
-```
-
-Then in the app:
-
-1. **Open browser & sign in** — a browser window opens; complete your normal
-   portal sign-in there (once per session).
-2. **Fetch attachments** — EDEX reads the page and lists every link.
-3. **Download** — tick the files you want and save them as a single zip.
+`requirements.txt` is cloud-safe (no Playwright), so deploying just works. Point
+the app's **Main file path** at `app.py`. On the cloud version, the auto-read
+button can't see the user's browser, so users paste their sign-in manually.
 
 ## Tests
 
 ```bash
-pytest
+.venv\Scripts\python -m pytest
 ```
 
-The tests cover the pure logic (link resolution/filtering, filename handling,
-zip bundling). The browser layer is exercised manually against the real portal.
+Cover the pure logic: link resolution/filtering, the SmartyGrants grid parser,
+filename handling, and zip/folder-tree building.
 
 ## Notes
 
-- **Local only.** EDEX runs on your machine; nothing is uploaded. Your sign-in
-  lives in `.edex_profile/` (git-ignored).
-- **JavaScript-heavy pages / files behind buttons.** v1 collects `<a href>`
-  links. If a page builds itself after load, let it finish loading in the browser
-  window before fetching. Files served from an address without a file extension
-  (e.g. `/download?id=123`) are included when you clear the *File types* filter.
+- **Your sign-in is a live credential.** Locally it stays on your machine. On the
+  cloud version it passes through Streamlit's servers — confirm that's acceptable
+  for your organisation before sharing it widely.
+- **Categorised mode** reads the Application page's damage grid: each file's
+  folder is its row (damage item) and its column (evidence type), so files are
+  placed correctly even when two share a name. Turn it off for a flat list.
