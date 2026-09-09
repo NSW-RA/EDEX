@@ -1,0 +1,7 @@
+# Local extras on top of the cloud-safe requirements.txt:
+#  - browser_cookie3 : read your SmartyGrants sign-in from your local browser
+#                      (only works when running on your own machine)
+#  - pytest          : the test suite
+-r requirements.txt
+browser_cookie3==0.19.1
+pytest==8.3.4
