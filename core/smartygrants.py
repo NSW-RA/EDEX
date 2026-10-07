@@ -1,4 +1,4 @@
-"""Parse a SmartyGrants EPAR *Application* page into categorised attachments.
+"""Parse a SmartyGrants EPAR *Application* page and lay out the folder tree.
 
 The Application form renders the Damage Information question as a grid
 (`table.ftViewGrid`). Two facts make categorisation reliable without ever
@@ -10,15 +10,25 @@ trusting a filename:
   * Each row is one damage item; the row's own **Damage Item ID** and **Asset
     Name** cells identify it. So a file's **damage item** comes from its row.
 
-Two files both named "1.jpeg" in different rows therefore land in different
-damage folders — the row, not the name, separates them.
-
 Non-grid uploads (Public Liability Insurance, Supporting Documentation) live in
-ordinary `ftViewQuestion` blocks and are grouped under "Application-level", with
-the category taken from the question label.
+ordinary `ftFileList` blocks outside the grid and are treated as
+application-level files.
 
-The form's "Download" dropdown lists every file flatly with no context; it is
-NOT an `ftFileList`, so restricting to `ul.ftFileList` ignores it cleanly.
+`plan()` turns a parse into the exact folder tree EDEX produces (confirmed with
+the user, 2026-10-07):
+
+    <EPAR ID>/
+    └── Application/
+        ├── Application Form/              (PLI + supporting docs; staff add the form)
+        └── Damage Evidence/
+            └── <Damage ID> - <Asset Name>/
+                ├── Pre-Disaster Evidence/
+                ├── Damage Evidence/
+                ├── Cost Estimation Evidence/
+                └── Completion/            (always empty — staff fill later)
+
+All four damage sub-folders, plus Application Form, are always created even when
+empty, so the structure is uniform.
 """
 
 from __future__ import annotations
@@ -29,35 +39,41 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-from core.models import CategorisedFile
+from core.models import CategorisedFile, DamageItem
 
-APPLICATION_GROUP = "Application-level"
-_APP_ORDER = 1_000_000  # sorts application-level groups after all damage items
+APPLICATION_FOLDER = "Application"
+APPLICATION_FORM_FOLDER = "Application Form"
+DAMAGE_WRAPPER_FOLDER = "Damage Evidence"
+# The four sub-folders every damage item gets, in order. "Completion" is always
+# left empty (staff add completion evidence later).
+DAMAGE_SUBFOLDERS = (
+    "Pre-Disaster Evidence",
+    "Damage Evidence",
+    "Cost Estimation Evidence",
+    "Completion",
+)
+
+_APP_ORDER = 1_000_000  # application-level files sort after all damage items
 
 
 @dataclass
 class ApplicationParse:
     epar_id: str
+    damage_items: list[DamageItem] = field(default_factory=list)
     files: list[CategorisedFile] = field(default_factory=list)
 
 
-def categorise_label(label: str) -> str:
-    """Map a column/question label to one of the agreed category folders."""
+def _damage_category(label: str) -> str:
+    """Map a grid column label to its damage evidence sub-folder."""
     low = " ".join((label or "").lower().split())
     if "pre-disaster" in low or "pre disaster" in low:
         return "Pre-Disaster Evidence"
     if "damage evidence" in low:
         return "Damage Evidence"
     if "cost estimat" in low:
-        return "Cost Estimate Evidence"
-    if "public liability" in low or "liability insurance" in low:
-        return "Public Liability Insurance"
-    if "supporting" in low:
-        return "Other Supporting Documents"
-    # Fallback: strip a leading/trailing "Upload" and tidy up.
+        return "Cost Estimation Evidence"
     cleaned = re.sub(r"(?i)\bupload\b", " ", label or "").strip(" .:-")
-    cleaned = " ".join(cleaned.split())
-    return cleaned or "Other Supporting Documents"
+    return " ".join(cleaned.split()) or "Evidence"
 
 
 def _clean_value(td) -> str:
@@ -79,20 +95,18 @@ def _headers_key(td) -> str:
     return value or ""
 
 
-def _damage_group(order: int, damage_id: str, asset_name: str) -> str:
-    label = damage_id or f"Item {order}"
-    base = f"Damage {order:02d} — {label}"
-    return f"{base} ({asset_name})" if asset_name else base
+def damage_folder_name(item: DamageItem) -> str:
+    """'<Damage ID> - <Asset Name>', or just the ID / a fallback."""
+    label = item.damage_id or f"Item {item.order}"
+    return f"{label} - {item.asset_name}" if item.asset_name else label
 
 
-def _parse_grid(grid, base_url: str, out: list[CategorisedFile]) -> None:
-    # header id -> label, and label(lower) -> header id for the identity columns.
+def _parse_grid(grid, base_url: str, out: ApplicationParse) -> None:
     header_label: dict[str, str] = {}
     for th in grid.select("thead th"):
         hid = th.get("id")
-        if not hid:
-            continue
-        header_label[hid] = " ".join(th.get_text(" ", strip=True).split())
+        if hid:
+            header_label[hid] = " ".join(th.get_text(" ", strip=True).split())
 
     def hid_for(name: str) -> str | None:
         for hid, lab in header_label.items():
@@ -112,52 +126,36 @@ def _parse_grid(grid, base_url: str, out: list[CategorisedFile]) -> None:
         by_header = {_headers_key(td): td for td in cells}
         damage_id = _clean_value(by_header[damage_id_hid]) if damage_id_hid in by_header else ""
         asset_name = _clean_value(by_header[asset_name_hid]) if asset_name_hid in by_header else ""
-        group = _damage_group(order, damage_id, asset_name)
+        out.damage_items.append(DamageItem(order=order, damage_id=damage_id, asset_name=asset_name))
 
         for td in cells:
             links = td.select("ul.ftFileList li.ftFile a[href]")
             if not links:
                 continue
-            category = categorise_label(header_label.get(_headers_key(td), ""))
+            category = _damage_category(header_label.get(_headers_key(td), ""))
             for a in links:
-                out.append(
+                out.files.append(
                     CategorisedFile(
                         url=urljoin(base_url, a["href"]),
                         filename=_link_name(a),
-                        group=group,
+                        damage_id=damage_id or f"__row{order}",
                         category=category,
                         order=order,
                     )
                 )
 
 
-def _question_label(ul) -> str:
-    """Climb to the enclosing ftViewQuestion that carries a label, return it."""
-    node = ul
-    while node is not None:
-        question = node.find_parent(class_="ftViewQuestion")
-        if question is None:
-            return ""
-        label = question.find("label", class_="ftViewLabel")
-        if label:
-            span = label.find("span", id=lambda x: bool(x) and x.endswith("_questionText"))
-            return " ".join((span or label).get_text(" ", strip=True).split())
-        node = question
-    return ""
-
-
-def _parse_non_grid(soup, base_url: str, out: list[CategorisedFile]) -> None:
+def _parse_non_grid(soup, base_url: str, out: ApplicationParse) -> None:
     for ul in soup.select("ul.ftFileList"):
         if ul.find_parent("table", class_="ftViewGrid") is not None:
             continue  # handled by the grid parser
-        category = categorise_label(_question_label(ul))
         for a in ul.select("li.ftFile a[href]"):
-            out.append(
+            out.files.append(
                 CategorisedFile(
                     url=urljoin(base_url, a["href"]),
                     filename=_link_name(a),
-                    group=APPLICATION_GROUP,
-                    category=category,
+                    damage_id=None,  # application-level -> Application Form
+                    category="",
                     order=_APP_ORDER,
                 )
             )
@@ -173,19 +171,54 @@ def _epar_id(soup) -> str:
 def parse_application(
     html: str, base_url: str = "https://manage.smartygrants.com.au"
 ) -> ApplicationParse:
-    """Parse Application-page HTML into a de-duplicated list of CategorisedFiles."""
+    """Parse Application-page HTML into damage items and categorised files."""
     soup = BeautifulSoup(html, "html.parser")
-    files: list[CategorisedFile] = []
+    out = ApplicationParse(epar_id=_epar_id(soup))
     for grid in soup.select("table.ftViewGrid"):
-        _parse_grid(grid, base_url, files)
-    _parse_non_grid(soup, base_url, files)
+        _parse_grid(grid, base_url, out)
+    _parse_non_grid(soup, base_url, out)
 
-    seen: set[tuple[str, str, str]] = set()
+    # De-duplicate exact (damage_id, category, url) repeats.
+    seen: set[tuple] = set()
     unique: list[CategorisedFile] = []
-    for f in files:
-        key = (f.group, f.category, f.url)
+    for f in out.files:
+        key = (f.damage_id, f.category, f.url)
         if key in seen:
             continue
         seen.add(key)
         unique.append(f)
-    return ApplicationParse(epar_id=_epar_id(soup), files=unique)
+    out.files = unique
+    return out
+
+
+def plan(parse: ApplicationParse) -> tuple[list[tuple[str, str, str]], list[str]]:
+    """Lay out the folder tree.
+
+    Returns (file_targets, empty_folders):
+      * file_targets: (folder, filename, url) for every file to download, where
+        folder is its full zip-relative path under <EPAR ID>/.
+      * empty_folders: every folder that must exist even when empty — the four
+        sub-folders of each damage item, and Application Form.
+    """
+    epar = parse.epar_id or "EDEX"
+    application = f"{epar}/{APPLICATION_FOLDER}"
+    app_form = f"{application}/{APPLICATION_FORM_FOLDER}"
+
+    empty_folders: list[str] = [app_form]
+    damage_base: dict[int, str] = {}
+    for item in parse.damage_items:
+        base = f"{application}/{DAMAGE_WRAPPER_FOLDER}/{damage_folder_name(item)}"
+        damage_base[item.order] = base
+        for sub in DAMAGE_SUBFOLDERS:
+            empty_folders.append(f"{base}/{sub}")
+
+    file_targets: list[tuple[str, str, str]] = []
+    for f in parse.files:
+        if f.damage_id is None:
+            folder = app_form
+        else:
+            base = damage_base.get(f.order)
+            folder = f"{base}/{f.category}" if base else app_form
+        file_targets.append((folder, f.filename, f.url))
+
+    return file_targets, empty_folders

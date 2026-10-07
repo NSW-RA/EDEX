@@ -44,7 +44,12 @@ from core.scraper import (
     normalize_target_url,
     only_files,
 )
-from core.smartygrants import APPLICATION_GROUP, parse_application
+from core.smartygrants import (
+    DAMAGE_SUBFOLDERS,
+    damage_folder_name,
+    parse_application,
+    plan,
+)
 from utils.ui import (
     render_footer,
     render_header,
@@ -133,8 +138,7 @@ if st.button("Fetch attachments", type="primary"):
                 st.session_state["cloud"] = {
                     "mode": "categorised",
                     "cookie": cookie,
-                    "files": parsed.files,
-                    "epar_id": parsed.epar_id,
+                    "parse": parsed,
                     "page_url": result["page_url"],
                 }
             else:
@@ -192,28 +196,48 @@ def _show_results(results):
 
 
 if state and state["mode"] == "categorised":
-    files = state["files"]
-    epar_id = state.get("epar_id") or "EDEX"
-    if not files:
-        st.info("No uploaded files found on the Application page.", icon=":material/info:")
+    parsed = state["parse"]
+    epar_id = parsed.epar_id or "EDEX"
+    file_targets, empty_folders = plan(parsed)
+    app_files = [f for f in parsed.files if f.damage_id is None]
+
+    if not parsed.files and not parsed.damage_items:
+        st.info("No files or damage items found on the Application page.", icon=":material/info:")
     else:
-        damage_groups = {f.group for f in files if f.group != APPLICATION_GROUP}
         st.success(
-            f"Found {len(files)} file(s) across {len(damage_groups)} damage item(s)"
-            + (" plus application-level documents." if any(
-                f.group == APPLICATION_GROUP for f in files) else "."),
+            f"Found {len(parsed.files)} file(s) across {len(parsed.damage_items)} damage item(s). "
+            f"They'll download as this folder tree (ready to drop under the AGRN in SharePoint):",
             icon=":material/check_circle:",
         )
-        ordered = sorted(files, key=lambda f: (f.order, f.group, f.category, f.filename.lower()))
-        for f in ordered:
-            st.markdown(f"`{f.group}/{f.category}/` **{f.filename}**")
 
-        if st.button(f"Download all {len(files)} as a folder zip", type="primary"):
-            todo = [(f"{f.group}/{f.category}", f.filename, f.url) for f in ordered]
-            entries, results = _download_all(todo)
+        # Application / Application Form
+        with st.expander(f"📁 {epar_id} / Application / Application Form  ·  {len(app_files)} file(s)"):
+            st.caption("PLI + supporting docs go here. Staff add the Assessment Form later.")
+            for f in app_files:
+                st.markdown(f"- {f.filename}")
+
+        # Damage Evidence / <Damage ID - Asset Name> / <4 sub-folders>
+        for item in parsed.damage_items:
+            item_files = [f for f in parsed.files if f.damage_id is not None and f.order == item.order]
+            with st.expander(
+                f"📁 Damage Evidence / {damage_folder_name(item)}  ·  {len(item_files)} file(s)"
+            ):
+                for sub in DAMAGE_SUBFOLDERS:
+                    subfiles = [f for f in item_files if f.category == sub]
+                    if sub == "Completion":
+                        st.markdown(f"**{sub}/** — _empty (staff fill later)_")
+                    elif subfiles:
+                        st.markdown(f"**{sub}/**")
+                        for f in subfiles:
+                            st.markdown(f"- {f.filename}")
+                    else:
+                        st.markdown(f"**{sub}/** — _empty_")
+
+        if st.button("Download as the folder tree (zip)", type="primary"):
+            entries, results = _download_all(file_targets)
             st.session_state["cloud_zip"] = {
-                "zip": build_tree_zip(entries) if entries else b"",
-                "name": f"{safe_filename(epar_id, 'EDEX')}-attachments.zip",
+                "zip": build_tree_zip(entries, empty_folders=empty_folders),
+                "name": f"{safe_filename(epar_id, 'EDEX')}.zip",
                 "results": results,
             }
 

@@ -26,19 +26,33 @@ class Attachment:
 
 
 @dataclass(frozen=True)
-class CategorisedFile:
-    """An attachment placed in the damage-item / category folder tree.
+class DamageItem:
+    """One damage line item (row) in the Application damage grid.
 
-    `group` is the top folder — a damage item ("Damage 01 — CBRS1 (Carrowbrook
-    Road)") or "Application-level". `category` is the sub folder ("Pre-Disaster
-    Evidence", "Damage Evidence", "Cost Estimate Evidence", "Public Liability
-    Insurance", "Other Supporting Documents"). `order` keeps damage items in
-    page order; application-level items sort last.
+    `order` is the row's position (1-based). `damage_id` is its Damage Item ID
+    (e.g. "CBRS1"); `asset_name` is the Asset Name (e.g. "Carrowbrook Road").
+    """
+
+    order: int
+    damage_id: str
+    asset_name: str
+
+
+@dataclass(frozen=True)
+class CategorisedFile:
+    """An attachment and where it belongs in the EPAR folder tree.
+
+    `damage_id` is the Damage Item ID the file belongs to, or None for an
+    application-level file (which goes in the "Application Form" folder).
+    `category` is the evidence sub-folder for a damage file ("Pre-Disaster
+    Evidence", "Damage Evidence", "Cost Estimation Evidence"); it is "" for an
+    application-level file. `order` is the owning damage item's row order
+    (application-level files sort last).
     """
 
     url: str
     filename: str
-    group: str
+    damage_id: str | None
     category: str
     order: int = 0
 

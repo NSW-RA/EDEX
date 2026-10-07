@@ -109,10 +109,21 @@ def _layout_tree(entries: list[tuple[str, str, bytes]]) -> list[tuple[str, bytes
     return laid_out
 
 
-def build_tree_zip(entries: list[tuple[str, str, bytes]]) -> bytes:
-    """Bundle (folder, filename, bytes) into a zip laid out as folder/filename."""
+def build_tree_zip(
+    entries: list[tuple[str, str, bytes]], empty_folders: list[str] | None = None
+) -> bytes:
+    """Bundle (folder, filename, bytes) into a zip laid out as folder/filename.
+
+    `empty_folders` names folders that must exist in the zip even when they hold
+    no files (e.g. the always-present "Completion" folder). Each is written as a
+    directory entry so it survives unzipping.
+    """
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for folder in empty_folders or []:
+            safe = _safe_folder(folder)
+            if safe:
+                zf.writestr(safe + "/", b"")
         for rel, data in _layout_tree(entries):
             zf.writestr(rel, data)
     return buffer.getvalue()
